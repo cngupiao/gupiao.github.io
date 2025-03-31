@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据看板</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            padding: 25px;
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        #codeInput {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            transition: border 0.3s;
+        }
+        #codeInput:focus {
+            border-color: #1890ff;
+        }
+        #syncButton {
+            background: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        #syncButton:hover {
+            background: #40a9ff;
+        }
+        #syncButton:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
+        .status-box {
+            padding: 20px 0;
+        }
+        #displayValue {
+            font-size: 2.8rem;
+            font-weight: 300;
+            margin: 15px 0;
+            color: #1d39c4;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #updateTime {
+            color: #8c8c8c;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        #errorMsg {
+            color: #f5222d;
+            min-height: 20px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        .loading {
+            position: relative;
+        }
+        .loading::after {
+            content: "";
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            transform: translateY(-50%);
+        }
+        @keyframes spin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="codeInput" 
+                placeholder="输入6位数字编码"
+                value="600519"
+                maxlength="6"
+                onkeypress="if(event.key==='Enter') startTracking()"
+            >
+            <button id="syncButton" onclick="startTracking()">同步</button>
+        </div>
+        
+        <div class="status-box">
+            <div id="displayValue">--.--</div>
+            <div id="updateTime">同步时间: --:--:--</div>
+            <div id="errorMsg"></div>
+        </div>
+    </div>
+
+    <script>
+        // 当前监控的编码
+        let currentCode = '600519';
+        // 更新定时器
+        let updateInterval;
+        
+        // 显示错误信息
+        function showError(message, duration = 3000) {
+            const errorElem = document.getElementById('errorMsg');
+            errorElem.textContent = message;
+            if(duration > 0) {
+                setTimeout(() => errorElem.textContent = '', duration);
+            }
+        }
+        
+        // 获取数据 - 使用东方财富API
+        async function getData(code) {
+            const button = document.getElementById('syncButton');
+            button.disabled = true;
+            button.classList.add('loading');
+            
+            try {
+                // 判断市场前缀
+                const market = code.startsWith('6') ? '1' : '0';
+                const apiUrl = `https://push2.eastmoney.com/api/qt/stock/get?secid=${market}.${code}&fields=f43,f58`;
+                
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'Referer': 'https://data.eastmoney.com/',
+                        'User-Agent': navigator.userAgent
+                    }
+                });
+                
+                if(!response.ok) {
+                    throw new Error(`网络请求失败`);
+                }
+                
+                const result = await response.json();
+                
+                if(result.data === null || result.rc !== 0) {
+                    throw new Error('无效编码或数据不存在');
+                }
+                
+                // 优先使用当前价格(f43)，收盘时使用收盘价(f58)
+                const price = result.data.f43 || result.data.f58;
+                
+                if(!price) {
+                    throw new Error('未能获取有效数据');
+                }
+                
+                return {
+                    value: price.toFixed(2),
+                    time: new Date().toLocaleTimeString('zh-CN', {hour12: false})
+                };
+            } catch (error) {
+                showError("数据同步失败");
+                console.error('获取数据出错:', error);
+                return null;
+            } finally {
+                button.disabled = false;
+                button.classList.remove('loading');
+            }
+        }
+        
+        // 更新显示
+        async function updateDisplay() {
+            const data = await getData(currentCode);
+            
+            if(!data) return;
+            
+            document.getElementById('displayValue').textContent = data.value;
+            document.getElementById('updateTime').textContent = `同步时间: ${data.time}`;
+            document.title = data.value; // 标签页只显示价格
+        }
+        
+        // 开始跟踪
+        function startTracking() {
+            const input = document.getElementById('codeInput').value.trim();
+            
+            // 验证编码（6位数字）
+            if(!/^[0-9]{6}$/.test(input)) {
+                showError("请输入6位有效编码");
+                return;
+            }
+            
+            currentCode = input;
+            
+            // 清除旧的定时器
+            if(updateInterval) {
+                clearInterval(updateInterval);
+            }
+            
+            // 立即更新一次
+            updateDisplay();
+            
+            // 设置定时更新（每15秒）
+            updateInterval = setInterval(updateDisplay, 15000);
+        }
+        
+        // 页面加载时自动开始
+        window.addEventListener('load', () => {
+            startTracking();
+        });
+    </script>
+</body>
+</html>
