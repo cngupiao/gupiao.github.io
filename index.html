@@ -79,7 +79,6 @@
                 type="text" 
                 id="codeInput" 
                 placeholder="输入6位数字编码"
-                value="000001"
                 maxlength="6"
                 onkeypress="if(event.key==='Enter') startTracking()"
             >
@@ -94,8 +93,20 @@
     </div>
 
     <script>
-        let currentCode = '000001';
+        // 使用localStorage存储股票代码
+        const STORAGE_KEY = 'lastStockCode';
+        let currentCode = '';
         let updateInterval;
+        
+        // 从本地存储获取上次的股票代码
+        function getLastStockCode() {
+            return localStorage.getItem(STORAGE_KEY) || '000001'; // 默认显示平安银行
+        }
+        
+        // 保存当前股票代码到本地存储
+        function saveStockCode(code) {
+            localStorage.setItem(STORAGE_KEY, code);
+        }
         
         function showError(message) {
             const errorElem = document.getElementById('errorMsg');
@@ -103,19 +114,13 @@
             setTimeout(() => errorElem.textContent = '', 3000);
         }
         
-        // 修正后的价格格式化函数 - 处理东方财富API的单位问题
         function formatEastMoneyPrice(price) {
             if(price === null || price === undefined) return '--.--';
-            
-            // 东方财富API返回的价格是以"分"为单位，需要除以100
             const num = Number(price);
             if(isNaN(num)) return '--.--';
-            
-            // 转换为元单位并保留2位小数
             return (num / 100).toFixed(2);
         }
         
-        // 使用东方财富API
         async function getStockPrice(code) {
             try {
                 const market = code.startsWith('6') ? '1' : '0';
@@ -132,8 +137,7 @@
                 
                 if(data.data === null) throw new Error('无效股票代码');
                 
-                // 东方财富API返回的价格需要除以100
-                const price = data.data.f43 || data.data.f58; // f43:当前价 f58:收盘价
+                const price = data.data.f43 || data.data.f58;
                 return {
                     value: formatEastMoneyPrice(price),
                     time: new Date().toLocaleTimeString('zh-CN')
@@ -170,14 +174,23 @@
             }
             
             currentCode = input;
+            saveStockCode(currentCode); // 保存到本地存储
+            
             if(updateInterval) clearInterval(updateInterval);
             
             updateDisplay();
             updateInterval = setInterval(updateDisplay, 10000);
         }
         
-        // 页面加载时自动开始
-        startTracking();
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 从本地存储获取上次的股票代码
+            currentCode = getLastStockCode();
+            document.getElementById('codeInput').value = currentCode;
+            
+            // 开始跟踪
+            startTracking();
+        });
     </script>
 </body>
 </html>
