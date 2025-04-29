@@ -3,19 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数据看板</title>
+    <title>系统监控终端</title>
     <style>
+        /* 基础重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        
         body {
             font-family: 'Microsoft YaHei', sans-serif;
-            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
         }
-        .container {
+        
+        /* 皮肤切换按钮 */
+        .skin-toggle {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            width: 32px;
+            height: 32px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+        
+        /* ========== 默认简约风格 ========== */
+        body.default-mode {
+            background: #f5f7fa;
+        }
+        .default-mode .container {
             background: white;
             border-radius: 10px;
             box-shadow: 0 2px 15px rgba(0,0,0,0.1);
@@ -24,16 +53,16 @@
             max-width: 350px;
             text-align: center;
         }
-        .title {
+        .default-mode .title {
             font-size: 1.2rem;
             margin-bottom: 15px;
             color: #333;
         }
-        .input-group {
+        .default-mode .input-group {
             display: flex;
             margin-bottom: 20px;
         }
-        #codeInput {
+        .default-mode #codeInput {
             flex: 1;
             padding: 12px;
             border: 1px solid #d9d9d9;
@@ -41,7 +70,7 @@
             font-size: 16px;
             text-align: center;
         }
-        #syncButton {
+        .default-mode #syncButton {
             background: #1890ff;
             color: white;
             border: none;
@@ -50,29 +79,590 @@
             margin-left: 10px;
             cursor: pointer;
         }
-        .status-box {
+        .default-mode .status-box {
             padding: 20px 0;
         }
-        #displayValue {
+        .default-mode #displayValue {
             font-size: 2.8rem;
             margin: 15px 0;
             color: #1d39c4;
             min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        #updateTime {
+        .default-mode #updateTime {
             color: #8c8c8c;
             font-size: 0.9rem;
         }
-        #errorMsg {
+        .default-mode #errorMsg {
             color: #f5222d;
             min-height: 20px;
             font-size: 0.9rem;
         }
+        .default-mode .fake-content {
+            display: none;
+        }
+
+        /* ========== IT运维监控风格 ========== */
+        body.it-mode {
+            background: #0a0a12;
+            font-family: 'Courier New', monospace;
+            color: #00ff41;
+            padding: 0;
+        }
+        .it-mode .container {
+            width: 100%;
+            max-width: 600px;
+            background: #000;
+            border: 1px solid #003b00;
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(0,255,65,0.1);
+        }
+        .it-mode .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #003b00;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+        .it-mode .title {
+            color: #00ff41;
+            font-size: 1.1rem;
+        }
+        .it-mode .server-info {
+            color: #008f11;
+            font-size: 0.9rem;
+        }
+        .it-mode .input-group {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .it-mode #codeInput {
+            flex: 1;
+            padding: 8px;
+            background: #111;
+            color: #00ff41;
+            border: 1px solid #003b00;
+            font-family: 'Courier New', monospace;
+        }
+        .it-mode #syncButton {
+            background: #003b00;
+            color: #00ff41;
+            border: 1px solid #00ff41;
+            padding: 0 15px;
+            margin-left: 10px;
+            font-family: 'Courier New', monospace;
+        }
+        .it-mode .status-box {
+            border: 1px solid #003b00;
+            padding: 15px;
+            margin-bottom: 15px;
+            min-height: 120px;
+        }
+        .it-mode #displayValue {
+            color: #00ff41;
+            text-shadow: 0 0 5px #00ff41;
+            font-size: 2.5rem;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .it-mode #updateTime {
+            color: #008f11;
+            font-size: 0.8rem;
+            text-align: right;
+        }
+        .it-mode #errorMsg {
+            color: #ff5555;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .it-mode .fake-content {
+            color: #00ff41;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .it-mode .log-entry {
+            margin-bottom: 5px;
+        }
+        .it-mode .log-entry:before {
+            content: "> ";
+        }
+        .it-mode .blink {
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* ========== Excel报表风格 ========== */
+        body.excel-mode {
+            background: #e6e6e6;
+            padding: 10px;
+        }
+        .excel-mode .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            box-shadow: none;
+            border: 1px solid #ddd;
+            padding: 15px;
+        }
+        .excel-mode .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #1f4e79;
+        }
+        .excel-mode .title {
+            color: #1f4e79;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .excel-mode .excel-toolbar {
+            display: flex;
+            gap: 5px;
+        }
+        .excel-mode .tool-button {
+            padding: 3px 8px;
+            background: #f2f2f2;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .excel-mode .input-group {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .excel-mode #codeInput {
+            flex: 1;
+            padding: 8px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0;
+        }
+        .excel-mode #syncButton {
+            background: #1f4e79;
+            color: white;
+            border: none;
+            border-radius: 0;
+            padding: 0 15px;
+            margin-left: 5px;
+        }
+        .excel-mode .status-box {
+            margin-bottom: 15px;
+        }
+        .excel-mode #displayValue {
+            color: #1f4e79;
+            font-weight: bold;
+            font-size: 2.2rem;
+            border-bottom: 2px solid #1f4e79;
+            padding-bottom: 10px;
+            margin: 10px 0;
+            justify-content: flex-start;
+        }
+        .excel-mode #updateTime {
+            color: #7f7f7f;
+            font-style: italic;
+            font-size: 0.8rem;
+            text-align: right;
+        }
+        .excel-mode #errorMsg {
+            color: #c00000;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .excel-mode .fake-content {
+            margin-top: 15px;
+        }
+        .excel-mode .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .excel-mode .data-table th {
+            background: #f2f2f2;
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .excel-mode .data-table td {
+            border: 1px solid #ddd;
+            padding: 5px;
+        }
+        .excel-mode .cell-formula {
+            font-style: italic;
+            color: #0070c0;
+        }
+
+        /* ========== 邮件系统风格 ========== */
+        body.email-mode {
+            background: #e5e5e5;
+            padding: 20px;
+        }
+        .email-mode .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-top: 3px solid #0078d4;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 0;
+        }
+        .email-mode .email-header {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .email-mode .email-subject {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0078d4;
+        }
+        .email-mode .email-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .email-mode .email-toolbar {
+            display: flex;
+            gap: 10px;
+            padding: 10px 15px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+        }
+        .email-mode .tool-button {
+            padding: 3px 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .email-mode .email-body {
+            padding: 15px;
+        }
+        .email-mode .input-group {
+            display: flex;
+            margin: 15px 0;
+        }
+        .email-mode #codeInput {
+            flex: 1;
+            padding: 8px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .email-mode #syncButton {
+            background: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 0 15px;
+            margin-left: 10px;
+        }
+        .email-mode .status-box {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #eee;
+        }
+        .email-mode #displayValue {
+            color: #d83b01;
+            font-weight: bold;
+            font-size: 2.2rem;
+            margin: 10px 0;
+        }
+        .email-mode #updateTime {
+            color: #666;
+            font-size: 0.8rem;
+            text-align: right;
+        }
+        .email-mode #errorMsg {
+            color: #d83b01;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .email-mode .email-footer {
+            padding: 10px 15px;
+            background: #f5f5f5;
+            border-top: 1px solid #ddd;
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+        }
+
+        /* ========== 项目管理风格 ========== */
+        body.jira-mode {
+            background: #f4f5f7;
+            padding: 15px;
+        }
+        .jira-mode .container {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            border-radius: 3px;
+            box-shadow: 0 1px 1px rgba(9,30,66,.25);
+            padding: 0;
+        }
+        .jira-mode .jira-header {
+            padding: 10px 15px;
+            background: #0052cc;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .jira-mode .jira-logo {
+            font-weight: bold;
+        }
+        .jira-mode .jira-nav {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+        }
+        .jira-mode .jira-nav-item {
+            cursor: pointer;
+        }
+        .jira-mode .jira-content {
+            display: flex;
+            min-height: 500px;
+        }
+        .jira-mode .jira-sidebar {
+            width: 200px;
+            padding: 15px;
+            background: #f4f5f7;
+            border-right: 1px solid #dfe1e6;
+        }
+        .jira-mode .sidebar-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #5e6c84;
+        }
+        .jira-mode .sidebar-menu {
+            list-style: none;
+        }
+        .jira-mode .sidebar-menu li {
+            padding: 5px 0;
+            cursor: pointer;
+        }
+        .jira-mode .sidebar-menu li:hover {
+            color: #0052cc;
+        }
+        .jira-mode .jira-main {
+            flex: 1;
+            padding: 15px;
+        }
+        .jira-mode .jira-issue {
+            background: white;
+            border-radius: 3px;
+            box-shadow: 0 1px 1px rgba(9,30,66,.25);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .jira-mode .issue-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #dfe1e6;
+        }
+        .jira-mode .issue-key {
+            font-weight: bold;
+            color: #0052cc;
+        }
+        .jira-mode .issue-status {
+            background: #dfe1e6;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+        .jira-mode .input-group {
+            display: flex;
+            margin: 15px 0;
+        }
+        .jira-mode #codeInput {
+            flex: 1;
+            padding: 8px;
+            background: #fafbfc;
+            border: 1px solid #dfe1e6;
+            border-radius: 3px;
+        }
+        .jira-mode #syncButton {
+            background: #0052cc;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 0 15px;
+            margin-left: 10px;
+        }
+        .jira-mode .status-box {
+            margin: 15px 0;
+        }
+        .jira-mode #displayValue {
+            color: #172b4d;
+            font-size: 2rem;
+            margin: 10px 0;
+            padding-left: 10px;
+            border-left: 3px solid #0052cc;
+            justify-content: flex-start;
+        }
+        .jira-mode #updateTime {
+            color: #5e6c84;
+            font-size: 0.8rem;
+            text-align: right;
+        }
+        .jira-mode #errorMsg {
+            color: #de350b;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .jira-mode .jira-footer {
+            padding: 10px 15px;
+            background: #f4f5f7;
+            border-top: 1px solid #dfe1e6;
+            font-size: 0.8rem;
+            color: #5e6c84;
+            text-align: center;
+        }
+
+        /* ========== 数据库查询风格 ========== */
+        body.sql-mode {
+            background: #1e1e1e;
+            padding: 0;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        .sql-mode .container {
+            width: 100%;
+            max-width: 1000px;
+            background: #252526;
+            border: 1px solid #3c3c3c;
+            padding: 0;
+        }
+        .sql-mode .sql-toolbar {
+            padding: 8px 15px;
+            background: #2d2d30;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            gap: 10px;
+        }
+        .sql-mode .sql-button {
+            padding: 3px 10px;
+            background: #3e3e42;
+            color: #d4d4d4;
+            border: none;
+            border-radius: 2px;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .sql-mode .sql-content {
+            display: flex;
+            min-height: 500px;
+        }
+        .sql-mode .sql-sidebar {
+            width: 200px;
+            padding: 15px;
+            background: #252526;
+            border-right: 1px solid #3c3c3c;
+            color: #9cdcfe;
+        }
+        .sql-mode .database-list {
+            list-style: none;
+            margin-top: 10px;
+        }
+        .sql-mode .database-list li {
+            padding: 3px 0;
+            cursor: pointer;
+        }
+        .sql-mode .database-list li:hover {
+            color: #ce9178;
+        }
+        .sql-mode .sql-main {
+            flex: 1;
+            padding: 15px;
+        }
+        .sql-mode .query-editor {
+            background: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            padding: 10px;
+            margin-bottom: 15px;
+            color: #d4d4d4;
+        }
+        .sql-mode .input-group {
+            display: flex;
+            margin: 15px 0;
+        }
+        .sql-mode #codeInput {
+            flex: 1;
+            padding: 8px;
+            background: #252526;
+            color: #9cdcfe;
+            border: 1px solid #3c3c3c;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        .sql-mode #syncButton {
+            background: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            padding: 0 15px;
+            margin-left: 10px;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        .sql-mode .status-box {
+            margin: 15px 0;
+        }
+        .sql-mode #displayValue {
+            color: #b5cea8;
+            font-size: 2rem;
+            margin: 10px 0;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        .sql-mode #updateTime {
+            color: #888;
+            font-size: 0.8rem;
+            text-align: right;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        .sql-mode #errorMsg {
+            color: #f48771;
+            font-size: 0.8rem;
+            margin-top: 5px;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        .sql-mode .query-results {
+            margin-top: 15px;
+            color: #d4d4d4;
+        }
+        .sql-mode .result-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .sql-mode .result-table th {
+            background: #2d2d30;
+            border: 1px solid #3c3c3c;
+            padding: 5px;
+            text-align: left;
+        }
+        .sql-mode .result-table td {
+            border: 1px solid #3c3c3c;
+            padding: 5px;
+        }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="title">世界时间</div>
+<body class="default-mode">
+    <!-- 皮肤切换按钮 -->
+    <div class="skin-toggle" id="skinToggle">🎨</div>
+    
+    <!-- 默认简约风格容器 -->
+    <div class="container default-container">
+        <div class="title">数据监控面板</div>
         
         <div class="input-group">
             <input 
@@ -82,25 +672,447 @@
                 maxlength="6"
                 onkeypress="if(event.key==='Enter') startTracking()"
             >
-            <button id="syncButton" onclick="startTracking()">同步</button>
+            <button id="syncButton" onclick="startTracking()">查询</button>
         </div>
         
         <div class="status-box">
             <div id="displayValue">--.--</div>
-            <div id="updateTime">同步时间: --:--:--</div>
+            <div id="updateTime">最后同步: --:--:--</div>
             <div id="errorMsg"></div>
+        </div>
+    </div>
+    
+    <!-- IT运维监控风格容器 -->
+    <div class="container it-container" style="display:none">
+        <div class="header">
+            <div class="title">服务器状态监控</div>
+            <div class="server-info">SERVER-01 | CPU: 42% | MEM: 64%</div>
+        </div>
+        
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="itCodeInput" 
+                placeholder="输入设备编号"
+                maxlength="6"
+            >
+            <button id="itSyncButton">执行</button>
+        </div>
+        
+        <div class="status-box">
+            <div id="itDisplayValue">--.--</div>
+            <div id="itUpdateTime">最后更新: --:--:--</div>
+            <div id="itErrorMsg"></div>
+        </div>
+        
+        <div class="fake-content">
+            <div class="log-entry">系统启动完成，所有服务正常运行</div>
+            <div class="log-entry">内存使用率: 64%</div>
+            <div class="log-entry">CPU温度: 42°C</div>
+            <div class="log-entry">网络状态: 稳定 <span class="blink">_</span></div>
+        </div>
+    </div>
+    
+    <!-- Excel报表风格容器 -->
+    <div class="container excel-container" style="display:none">
+        <div class="header">
+            <div class="title">财务数据报表</div>
+            <div class="excel-toolbar">
+                <div class="tool-button">文件</div>
+                <div class="tool-button">开始</div>
+                <div class="tool-button">插入</div>
+                <div class="tool-button">数据</div>
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="excelCodeInput" 
+                placeholder="输入项目编号"
+                maxlength="6"
+            >
+            <button id="excelSyncButton">刷新</button>
+        </div>
+        
+        <div class="status-box">
+            <div id="excelDisplayValue">--.--</div>
+            <div id="excelUpdateTime">更新时间: --:--:--</div>
+            <div id="excelErrorMsg"></div>
+        </div>
+        
+        <div class="fake-content">
+            <table class="data-table">
+                <tr>
+                    <th>日期</th>
+                    <th>项目</th>
+                    <th>数值</th>
+                </tr>
+                <tr>
+                    <td>2023-12-01</td>
+                    <td>KPI-01</td>
+                    <td>92.5</td>
+                </tr>
+                <tr>
+                    <td>2023-12-01</td>
+                    <td>KPI-02</td>
+                    <td>87.2</td>
+                </tr>
+                <tr>
+                    <td>=TODAY()</td>
+                    <td class="cell-formula">=VLOOKUP(A3,A1:C2,3,FALSE)</td>
+                    <td id="excelDisplayCode">--.--</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <!-- 邮件系统风格容器 -->
+    <div class="container email-container" style="display:none">
+        <div class="email-header">
+            <div class="email-subject">系统每日数据报告</div>
+            <div class="email-meta">
+                <span>发件人: system.admin@company.com</span>
+                <span>收件人: user@company.com</span>
+                <span>日期: <span id="emailDate">--/--/----</span></span>
+            </div>
+        </div>
+        
+        <div class="email-toolbar">
+            <div class="tool-button">回复</div>
+            <div class="tool-button">转发</div>
+            <div class="tool-button">删除</div>
+        </div>
+        
+        <div class="email-body">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="emailCodeInput" 
+                    placeholder="输入查询代码"
+                    maxlength="6"
+                >
+                <button id="emailSyncButton">查询</button>
+            </div>
+            
+            <div class="status-box">
+                <div id="emailDisplayValue">--.--</div>
+                <div id="emailUpdateTime">接收时间: --:--:--</div>
+                <div id="emailErrorMsg"></div>
+            </div>
+            
+            <div class="fake-content">
+                <p>尊敬的用户：</p>
+                <p>这是您请求的系统自动生成的数据报告，如需更多信息，请使用上方查询功能。</p>
+                <p>此致</p>
+                <p>系统管理员</p>
+            </div>
+        </div>
+        
+        <div class="email-footer">
+            这是一封系统自动生成的邮件，请勿直接回复
+        </div>
+    </div>
+    
+    <!-- 项目管理风格容器 -->
+    <div class="container jira-container" style="display:none">
+        <div class="jira-header">
+            <div class="jira-logo">JIRA</div>
+            <div class="jira-nav">
+                <div class="jira-nav-item">仪表盘</div>
+                <div class="jira-nav-item">项目</div>
+                <div class="jira-nav-item">问题</div>
+                <div class="jira-nav-item">报表</div>
+            </div>
+        </div>
+        
+        <div class="jira-content">
+            <div class="jira-sidebar">
+                <div class="sidebar-title">项目</div>
+                <ul class="sidebar-menu">
+                    <li>数据监控系统</li>
+                    <li>财务报告工具</li>
+                    <li>市场分析平台</li>
+                </ul>
+                
+                <div class="sidebar-title">筛选器</div>
+                <ul class="sidebar-menu">
+                    <li>我的待办事项</li>
+                    <li>最近查看</li>
+                    <li>已分配给我</li>
+                </ul>
+            </div>
+            
+            <div class="jira-main">
+                <div class="jira-issue">
+                    <div class="issue-header">
+                        <div class="issue-key">DATA-123</div>
+                        <div class="issue-status">进行中</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="jiraCodeInput" 
+                            placeholder="输入任务ID"
+                            maxlength="6"
+                        >
+                        <button id="jiraSyncButton">更新</button>
+                    </div>
+                    
+                    <div class="status-box">
+                        <div id="jiraDisplayValue">--.--</div>
+                        <div id="jiraUpdateTime">最后修改: --:--:--</div>
+                        <div id="jiraErrorMsg"></div>
+                    </div>
+                    
+                    <div class="fake-content">
+                        <p>任务描述：监控指定股票代码的实时数据</p>
+                        <p>负责人：系统管理员</p>
+                        <p>截止日期：<span id="jiraDueDate">--/--/----</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="jira-footer">
+            JIRA - 项目与问题跟踪工具
+        </div>
+    </div>
+    
+    <!-- 数据库查询风格容器 -->
+    <div class="container sql-container" style="display:none">
+        <div class="sql-toolbar">
+            <div class="sql-button">执行</div>
+            <div class="sql-button">保存</div>
+            <div class="sql-button">连接</div>
+        </div>
+        
+        <div class="sql-content">
+            <div class="sql-sidebar">
+                <div>数据库连接</div>
+                <ul class="database-list">
+                    <li>market_data</li>
+                    <li>financial_db</li>
+                    <li>user_info</li>
+                </ul>
+            </div>
+            
+            <div class="sql-main">
+                <div class="query-editor">
+                    <div>> SELECT * FROM market_data</div>
+                    <div>> WHERE stock_code = '<span id="sqlDisplayCode">000001</span>'</div>
+                    <div>> AND date = CURRENT_DATE;</div>
+                </div>
+                
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="sqlCodeInput" 
+                        placeholder="输入查询代码"
+                        maxlength="6"
+                    >
+                    <button id="sqlSyncButton">执行</button>
+                </div>
+                
+                <div class="status-box">
+                    <div id="sqlDisplayValue">--.--</div>
+                    <div id="sqlUpdateTime">查询时间: --:--:--</div>
+                    <div id="sqlErrorMsg"></div>
+                </div>
+                
+                <div class="query-results">
+                    <table class="result-table">
+                        <tr>
+                            <th>stock_code</th>
+                            <th>price</th>
+                            <th>time</th>
+                        </tr>
+                        <tr>
+                            <td id="sqlResultCode">000001</td>
+                            <td id="sqlResultValue">--.--</td>
+                            <td id="sqlResultTime">--:--:--</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // 使用localStorage存储股票代码
+        // 使用localStorage存储股票代码和皮肤设置
         const STORAGE_KEY = 'lastStockCode';
+        const SKIN_KEY = 'currentSkin';
         let currentCode = '';
         let updateInterval;
         
+        // 皮肤配置
+        const skins = [
+            {
+                id: 'default',
+                name: '默认简约',
+                containers: ['.default-container'],
+                inputId: '#codeInput',
+                buttonId: '#syncButton',
+                displayId: '#displayValue',
+                timeId: '#updateTime',
+                errorId: '#errorMsg'
+            },
+            {
+                id: 'it-mode',
+                name: '运维监控',
+                containers: ['.it-container'],
+                inputId: '#itCodeInput',
+                buttonId: '#itSyncButton',
+                displayId: '#itDisplayValue',
+                timeId: '#itUpdateTime',
+                errorId: '#itErrorMsg'
+            },
+            {
+                id: 'excel-mode',
+                name: 'Excel报表',
+                containers: ['.excel-container'],
+                inputId: '#excelCodeInput',
+                buttonId: '#excelSyncButton',
+                displayId: '#excelDisplayValue',
+                timeId: '#excelUpdateTime',
+                errorId: '#excelErrorMsg',
+                extraBindings: [
+                    {
+                        elementId: '#excelDisplayCode',
+                        targetId: '#excelCodeInput'
+                    }
+                ]
+            },
+            {
+                id: 'email-mode',
+                name: '邮件系统',
+                containers: ['.email-container'],
+                inputId: '#emailCodeInput',
+                buttonId: '#emailSyncButton',
+                displayId: '#emailDisplayValue',
+                timeId: '#emailUpdateTime',
+                errorId: '#emailErrorMsg',
+                onActivate: function() {
+                    const now = new Date();
+                    document.getElementById('emailDate').textContent = 
+                        `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+                }
+            },
+            {
+                id: 'jira-mode',
+                name: '项目管理',
+                containers: ['.jira-container'],
+                inputId: '#jiraCodeInput',
+                buttonId: '#jiraSyncButton',
+                displayId: '#jiraDisplayValue',
+                timeId: '#jiraUpdateTime',
+                errorId: '#jiraErrorMsg',
+                onActivate: function() {
+                    const now = new Date();
+                    document.getElementById('jiraDueDate').textContent = 
+                        `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()+7}`;
+                }
+            },
+            {
+                id: 'sql-mode',
+                name: '数据库查询',
+                containers: ['.sql-container'],
+                inputId: '#sqlCodeInput',
+                buttonId: '#sqlSyncButton',
+                displayId: '#sqlDisplayValue',
+                timeId: '#sqlUpdateTime',
+                errorId: '#sqlErrorMsg',
+                extraBindings: [
+                    {
+                        elementId: '#sqlDisplayCode',
+                        targetId: '#sqlCodeInput'
+                    },
+                    {
+                        elementId: '#sqlResultCode',
+                        targetId: '#sqlCodeInput'
+                    }
+                ]
+            }
+        ];
+        let currentSkinIndex = 0;
+        
+        // 初始化皮肤
+        function initSkin() {
+            const savedSkin = localStorage.getItem(SKIN_KEY);
+            if(savedSkin) {
+                const index = skins.findIndex(skin => skin.id === savedSkin);
+                if(index >= 0) {
+                    currentSkinIndex = index;
+                    applySkin(skins[currentSkinIndex]);
+                }
+            } else {
+                applySkin(skins[0]);
+            }
+        }
+        
+        // 应用皮肤
+        function applySkin(skin) {
+            // 隐藏所有容器
+            document.querySelectorAll('.container').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // 显示当前皮肤容器
+            skin.containers.forEach(selector => {
+                document.querySelector(selector).style.display = 'block';
+            });
+            
+            // 同步输入框值
+            const mainInput = document.getElementById('codeInput');
+            const skinInput = document.querySelector(skin.inputId);
+            if(mainInput && skinInput) {
+                skinInput.value = mainInput.value;
+            }
+            
+            // 绑定按钮事件
+            const skinButton = document.querySelector(skin.buttonId);
+            if(skinButton) {
+                skinButton.onclick = startTracking;
+            }
+            
+            // 绑定额外元素
+            if(skin.extraBindings) {
+                skin.extraBindings.forEach(binding => {
+                    const element = document.querySelector(binding.elementId);
+                    const target = document.querySelector(binding.targetId);
+                    if(element && target) {
+                        target.addEventListener('input', function() {
+                            element.textContent = this.value;
+                        });
+                    }
+                });
+            }
+            
+            // 执行皮肤特定的激活函数
+            if(skin.onActivate) {
+                skin.onActivate();
+            }
+            
+            // 更新当前皮肤索引
+            currentSkinIndex = skins.findIndex(s => s.id === skin.id);
+            
+            // 保存到本地存储
+            localStorage.setItem(SKIN_KEY, skin.id);
+            
+            // 更新body的class
+            document.body.className = skin.id;
+        }
+        
+        // 切换皮肤
+        function toggleSkin() {
+            currentSkinIndex = (currentSkinIndex + 1) % skins.length;
+            applySkin(skins[currentSkinIndex]);
+        }
+        
         // 从本地存储获取上次的股票代码
         function getLastStockCode() {
-            return localStorage.getItem(STORAGE_KEY) || '000001'; // 默认显示平安银行
+            return localStorage.getItem(STORAGE_KEY) || '000001';
         }
         
         // 保存当前股票代码到本地存储
@@ -109,9 +1121,12 @@
         }
         
         function showError(message) {
-            const errorElem = document.getElementById('errorMsg');
-            errorElem.textContent = message;
-            setTimeout(() => errorElem.textContent = '', 3000);
+            const currentSkin = skins[currentSkinIndex];
+            const errorElem = document.querySelector(currentSkin.errorId);
+            if(errorElem) {
+                errorElem.textContent = message;
+                setTimeout(() => errorElem.textContent = '', 3000);
+            }
         }
         
         function formatEastMoneyPrice(price) {
@@ -121,60 +1136,111 @@
             return (num / 100).toFixed(2);
         }
         
+        // 使用东方财富API获取股票数据
         async function getStockPrice(code) {
             try {
+                // 判断是沪市(6开头)还是深市(0/3开头)
                 const market = code.startsWith('6') ? '1' : '0';
-                const response = await fetch(`https://push2.eastmoney.com/api/qt/stock/get?secid=${market}.${code}&fields=f43,f58`, {
+                const apiUrl = `https://push2.eastmoney.com/api/qt/stock/get?secid=${market}.${code}&fields=f43,f58&_=${Date.now()}`;
+                
+                const response = await fetch(apiUrl, {
                     headers: {
                         'Referer': 'https://data.eastmoney.com/',
                         'User-Agent': 'Mozilla/5.0'
                     }
                 });
                 
-                if(!response.ok) throw new Error('网络请求失败');
+                if(!response.ok) throw new Error(`网络请求失败: ${response.status}`);
                 
                 const data = await response.json();
                 
-                if(data.data === null) throw new Error('无效股票代码');
+                if(data.data === null || data.rc !== 0) {
+                    throw new Error('无效股票代码');
+                }
                 
+                // 东方财富API返回的价格需要除以100
                 const price = data.data.f43 || data.data.f58;
+                if(price === null || price === undefined) {
+                    throw new Error('未能获取有效价格数据');
+                }
+                
                 return {
                     value: formatEastMoneyPrice(price),
-                    time: new Date().toLocaleTimeString('zh-CN')
+                    time: new Date().toLocaleTimeString('zh-CN', {hour12: false})
                 };
             } catch (error) {
-                showError("数据获取失败");
-                console.error(error);
+                showError("数据获取失败: " + error.message);
+                console.error('获取股票数据出错:', error);
                 return null;
             }
         }
         
         async function updateDisplay() {
-            const button = document.getElementById('syncButton');
-            button.disabled = true;
-            button.textContent = '获取中...';
+            const currentSkin = skins[currentSkinIndex];
+            const button = document.querySelector(currentSkin.buttonId);
+            if(button) {
+                button.disabled = true;
+                button.textContent = currentSkin.name === '默认简约' ? '查询中...' : '处理中...';
+            }
             
             const data = await getStockPrice(currentCode);
             
-            button.disabled = false;
-            button.textContent = '同步';
+            if(button) {
+                button.disabled = false;
+                button.textContent = currentSkin.name === '默认简约' ? '查询' : 
+                                    currentSkin.name === '运维监控' ? '执行' :
+                                    currentSkin.name === 'Excel报表' ? '刷新' :
+                                    currentSkin.name === '邮件系统' ? '查询' :
+                                    currentSkin.name === '项目管理' ? '更新' : '执行';
+            }
             
             if(!data) return;
             
-            document.getElementById('displayValue').textContent = data.value;
-            document.getElementById('updateTime').textContent = `同步时间: ${data.time}`;
+            // 更新所有皮肤对应的显示元素
+            skins.forEach(skin => {
+                const displayElem = document.querySelector(skin.displayId);
+                const timeElem = document.querySelector(skin.timeId);
+                const errorElem = document.querySelector(skin.errorId);
+                
+                if(displayElem) displayElem.textContent = data.value;
+                if(timeElem) timeElem.textContent = `${
+                    skin.name === '默认简约' ? '最后同步' :
+                    skin.name === '运维监控' ? '最后更新' :
+                    skin.name === 'Excel报表' ? '更新时间' :
+                    skin.name === '邮件系统' ? '接收时间' :
+                    skin.name === '项目管理' ? '最后修改' : '查询时间'
+                }: ${data.time}`;
+                if(errorElem) errorElem.textContent = '';
+            });
+            
+            // 更新SQL结果表格
+            const sqlResultValue = document.getElementById('sqlResultValue');
+            const sqlResultTime = document.getElementById('sqlResultTime');
+            if(sqlResultValue) sqlResultValue.textContent = data.value;
+            if(sqlResultTime) sqlResultTime.textContent = data.time;
+            
             document.title = data.value;
         }
         
         function startTracking() {
-            const input = document.getElementById('codeInput').value.trim();
-            if(!/^\d{6}$/.test(input)) {
+            const currentSkin = skins[currentSkinIndex];
+            const input = document.querySelector(currentSkin.inputId);
+            if(!input) return;
+            
+            const code = input.value.trim();
+            if(!/^\d{6}$/.test(code)) {
                 showError("请输入6位有效编码");
                 return;
             }
             
-            currentCode = input;
-            saveStockCode(currentCode); // 保存到本地存储
+            // 同步所有输入框的值
+            skins.forEach(skin => {
+                const skinInput = document.querySelector(skin.inputId);
+                if(skinInput) skinInput.value = code;
+            });
+            
+            currentCode = code;
+            saveStockCode(currentCode);
             
             if(updateInterval) clearInterval(updateInterval);
             
@@ -184,9 +1250,20 @@
         
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', () => {
+            // 初始化皮肤
+            initSkin();
+            
+            // 设置皮肤切换按钮事件
+            document.getElementById('skinToggle').addEventListener('click', toggleSkin);
+            
             // 从本地存储获取上次的股票代码
             currentCode = getLastStockCode();
-            document.getElementById('codeInput').value = currentCode;
+            
+            // 设置所有输入框的值
+            skins.forEach(skin => {
+                const input = document.querySelector(skin.inputId);
+                if(input) input.value = currentCode;
+            });
             
             // 开始跟踪
             startTracking();
